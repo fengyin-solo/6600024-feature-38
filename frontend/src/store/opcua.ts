@@ -11,6 +11,8 @@ export const useOpcuaStore = defineStore('opcua', () => {
   const realTimeData = ref<Map<string, DataValue>>(new Map())
   const isConnected = ref(false)
   const dataHistory = ref<Map<string, Array<{ timestamp: number; value: number }>>>(new Map())
+  const refreshInterval = ref(1000)
+  const HIGH_FREQUENCY_THRESHOLD = 500
 
   // 初始化模拟节点树
   function initNodeTree() {
@@ -274,9 +276,21 @@ export const useOpcuaStore = defineStore('opcua', () => {
     isConnected.value = false
   }
 
+  // 设置刷新间隔
+  function setRefreshInterval(interval: number) {
+    if (interval < 100) {
+      refreshInterval.value = 100
+    } else if (interval > 30000) {
+      refreshInterval.value = 30000
+    } else {
+      refreshInterval.value = interval
+    }
+  }
+
   // 计算属性
   const activeAlarmsCount = computed(() => alarms.value.filter(a => !a.acknowledged).length)
   const criticalAlarmsCount = computed(() => alarms.value.filter(a => a.severity === 'Critical' && !a.acknowledged).length)
+  const isHighFrequency = computed(() => refreshInterval.value <= HIGH_FREQUENCY_THRESHOLD)
 
   return {
     // 状态
@@ -287,6 +301,7 @@ export const useOpcuaStore = defineStore('opcua', () => {
     realTimeData,
     isConnected,
     dataHistory,
+    refreshInterval,
     // 方法
     initNodeTree,
     simulateDataUpdate,
@@ -298,8 +313,10 @@ export const useOpcuaStore = defineStore('opcua', () => {
     connect,
     disconnect,
     getAllVariableNodes,
+    setRefreshInterval,
     // 计算属性
     activeAlarmsCount,
-    criticalAlarmsCount
+    criticalAlarmsCount,
+    isHighFrequency
   }
 })

@@ -10,6 +10,31 @@
         <el-badge :value="store.activeAlarmsCount" :max="99" class="alarm-badge">
           <el-icon :size="20" class="text-yellow-400"><Bell /></el-icon>
         </el-badge>
+        <div class="refresh-control">
+          <span class="refresh-label">刷新频率</span>
+          <el-select
+            v-model="selectedRefreshRate"
+            size="small"
+            class="refresh-select"
+            @change="handleRefreshRateChange"
+          >
+            <el-option label="100ms (极速)" :value="100" />
+            <el-option label="500ms (高频)" :value="500" />
+            <el-option label="1秒 (标准)" :value="1000" />
+            <el-option label="2秒 (低频)" :value="2000" />
+            <el-option label="5秒 (省电)" :value="5000" />
+          </el-select>
+          <el-tag
+            v-if="store.isHighFrequency"
+            type="warning"
+            size="small"
+            effect="dark"
+            class="high-freq-tag"
+          >
+            <el-icon><Warning /></el-icon>
+            高频模式
+          </el-tag>
+        </div>
         <el-tag type="success" v-if="store.isConnected" class="status-tag">
           <el-icon><CircleCheck /></el-icon>
           在线
@@ -105,8 +130,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { Monitor, Bell, CircleCheck, CircleClose } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Monitor, Bell, CircleCheck, CircleClose, Warning } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useOpcuaStore } from './store/opcua'
 import NodeTree from './components/NodeTree.vue'
 import DataDashboard from './components/DataDashboard.vue'
@@ -114,6 +139,8 @@ import type { AlarmEvent } from './types'
 
 const store = useOpcuaStore()
 const updateTimer = ref<number | null>(null)
+const selectedRefreshRate = ref(1000)
+const showHighFreqWarning = ref(false)
 
 const criticalCount = computed(() =>
   store.alarms.filter(a => a.severity === 'Critical' && !a.acknowledged).length
@@ -135,9 +162,47 @@ function toggleConnection() {
 }
 
 function startSimulation() {
+  if (updateTimer.value) {
+    clearInterval(updateTimer.value)
+  }
   updateTimer.value = window.setInterval(() => {
     store.simulateDataUpdate()
-  }, 1000)
+  }, store.refreshInterval)
+}
+
+async function handleRefreshRateChange(value: number) {
+  if (value <= 500 && !showHighFreqWarning.value) {
+    try {
+      await ElMessageBox.confirm(
+        '高频刷新模式（≤500ms）会显著增加 CPU 占用和网络带宽消耗，可能导致系统资源紧张。建议仅在需要精确监控的场景下短时使用。是否继续？',
+        '高频模式资源提醒',
+        {
+          confirmButtonText: '确认使用',
+          cancelButtonText: '返回选择',
+          type: 'warning',
+          icon: Warning,
+          confirmButtonClass: 'el-button--warning'
+        }
+      )
+      showHighFreqWarning.value = true
+      applyRefreshRate(value)
+    } catch {
+      selectedRefreshRate.value = store.refreshInterval
+    }
+  } else {
+    if (value > 500) {
+      showHighFreqWarning.value = false
+    }
+    applyRefreshRate(value)
+  }
+}
+
+function applyRefreshRate(interval: number) {
+  store.setRefreshInterval(interval)
+  if (store.isConnected) {
+    startSimulation()
+  }
+  ElMessage.success(`刷新频率已设置为 ${interval}ms`)
 }
 
 function getSeverityType(severity: AlarmEvent['severity']) {
@@ -214,6 +279,38 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.refresh-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refresh-label {
+  font-size: 13px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.refresh-select {
+  width: 130px;
+}
+
+.high-freq-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .status-tag {
