@@ -16,25 +16,25 @@
       @node-click="handleNodeClick"
       class="dark-tree"
     >
-      <template #default="{ node, data }">
-        <span class="custom-tree-node">
-          <el-icon v-if="data.type === 'Object'" class="text-yellow-400">
+      <template #default="slotProps">
+        <span class="custom-tree-node" v-if="slotProps && slotProps.data">
+          <el-icon v-if="slotProps.data.type === 'Object'" class="text-yellow-400">
             <Folder />
           </el-icon>
-          <el-icon v-else-if="data.type === 'Variable'" class="text-green-400">
+          <el-icon v-else-if="slotProps.data.type === 'Variable'" class="text-green-400">
             <DataLine />
           </el-icon>
-          <span class="node-label">{{ data.name }}</span>
+          <span class="node-label">{{ slotProps.data.name }}</span>
           <el-tag
-            v-if="data.type === 'Variable' && data.quality"
-            :type="data.quality === 'Good' ? 'success' : data.quality === 'Bad' ? 'danger' : 'warning'"
+            v-if="slotProps.data.type === 'Variable' && slotProps.data.quality"
+            :type="slotProps.data.quality === 'Good' ? 'success' : slotProps.data.quality === 'Bad' ? 'danger' : 'warning'"
             size="small"
             class="ml-2"
           >
-            {{ data.quality }}
+            {{ slotProps.data.quality }}
           </el-tag>
-          <span v-if="data.type === 'Variable' && data.value !== undefined" class="node-value">
-            {{ data.value }}{{ data.unit ? ' ' + data.unit : '' }}
+          <span v-if="slotProps.data.type === 'Variable' && slotProps.data.value !== undefined" class="node-value">
+            {{ slotProps.data.value }}{{ slotProps.data.unit ? ' ' + slotProps.data.unit : '' }}
           </span>
         </span>
       </template>

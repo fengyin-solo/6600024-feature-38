@@ -31,7 +31,7 @@
             effect="dark"
             class="high-freq-tag"
           >
-            <el-icon><Warning /></el-icon>
+            <el-icon><WarningIcon /></el-icon>
             高频模式
           </el-tag>
         </div>
@@ -130,7 +130,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { Monitor, Bell, CircleCheck, CircleClose, Warning } from '@element-plus/icons-vue'
+import { Monitor, Bell, CircleCheck, CircleClose, Warning as WarningIcon } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useOpcuaStore } from './store/opcua'
 import NodeTree from './components/NodeTree.vue'
@@ -180,7 +180,6 @@ async function handleRefreshRateChange(value: number) {
           confirmButtonText: '确认使用',
           cancelButtonText: '返回选择',
           type: 'warning',
-          icon: Warning,
           confirmButtonClass: 'el-button--warning'
         }
       )
